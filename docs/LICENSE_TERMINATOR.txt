@@ -1,0 +1,1 @@
+ENVIRONMENTAL LOCK: This software contains a hardware-dependent entropy generator. Unauthorized replication to secondary silicon environments triggers a 'Silent-Zero' state, rendering the conversion protocol mathematically inert. This is an automated enforcement of the Patent Pending 'Silicon Anchor' methodology.
