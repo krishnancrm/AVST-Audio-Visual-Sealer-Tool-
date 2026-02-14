@@ -1,0 +1,6 @@
+*.c
+*.h
+*.o
+Sealed_Lossless/
+Sealed_Compressed/
+Surveillance_Data/
