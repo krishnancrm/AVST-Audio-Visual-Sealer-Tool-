@@ -14,7 +14,7 @@ A high-integrity forensic watermarking toolset designed to survive aggressive so
 
 \- \*\*Adaptive Radius Search\*\*: Auditor compensates for up to ±5 pixels of anchor drift caused by resampling or JPEG block alignment.
 
-\- \*\*Temporal Rolling Seed\*\*: The robust cryptographic cloack rotates every 2 hours, effectively timestamping the image to a specific forensic window.
+\- \*\*Temporal Rolling Seed\*\*: The robust cryptographic clock rotates every 2 hours, effectively timestamping the image to a specific forensic window.
 
 \- \*\*Visual Richness (Decoy Injection)\*\*: Injects 450+ non-syncing decoy pixels to maintain a natural image texture and mask the payload coordinates.
 
@@ -70,4 +70,5 @@ The following metrics were captured using the internal `execute_stress_test.py` 
 | **Heavy Blur/Noise** | Variable | 15% | 92% | **SECURE** |
 
 **Note:** Survival of L2 (Robust) allows for 100% reconstruction of embedded MAC/GPS strings.
+
 
