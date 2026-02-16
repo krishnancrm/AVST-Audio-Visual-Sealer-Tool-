@@ -5,7 +5,7 @@ A high-integrity forensic watermarking toolset designed to survive aggressive so
 ## 🛡️ Core Features
 
 - **Dual-Layer Encoding**: Simultaneously embeds a "Fragile" layer (L1) for tamper detection and a "Robust" layer (L2) for survival against extreme compression.
-- **Temporal Rolling Seed (2-Hour Lifecycle)**: The cryptographic clock rotates every 2 hours. **Note:** Seals are time-gated; verification must occur within the specific forensic window as the seal itself expires after 120 minutes to ensure maximum temporal security.
+- **Temporal Rolling Seed (2-Hour Lifecycle)**: The cryptographic one-time-arbitrary self-clock rotates every 2 hours. **Note:** Seals are time-gated; verification must occur within the specific forensic window as the seal itself expires after 120 minutes to ensure maximum temporal security.
 - **Hardened Executables**: The core logic is distributed via compiled binaries (`.exe`) which are hardened against reverse engineering. This ensures the proprietary sealing math and coordinate mapping remain secure and tamper-proof—a unique novelty in forensic software distribution.
 - **Adaptive Radius Search**: Auditor compensates for up to ±5 pixels of anchor drift caused by resampling or JPEG block alignment.
 - **Visual Richness (Decoy Injection)**: Injects 450+ non-syncing decoy pixels to maintain a natural image texture and mask the payload coordinates.
@@ -46,6 +46,7 @@ The following metrics were captured using the internal `execute_stress_test.py` 
 | **Heavy Blur/Noise** | Variable | 15% | 92% | **SECURE** |
 
 **Note:** Survival of L2 (Robust) allows for 100% reconstruction of embedded MAC/GPS strings.
+
 
 
 
