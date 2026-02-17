@@ -1,118 +1,123 @@
 import os
 import shutil
+import subprocess
+from PIL import Image
 
 # --- Configuration: Folder Paths ---
-# RAW_DIR: Source for Option 1
-# TEST_DIR: Source for Option 2
 RAW_DIR = "Surveillance_Data"
-TEST_DIR = "Surveillance_Data"
 COMPRESSED_OUT = "Sealed_Compressed"
 LOSSLESS_OUT = "Sealed_Lossless"
+# Source directory for verification (Option 2)
+TEST_DIR = "Surveillance_Data" 
+
+# Paths to hardened binaries in the bin folder
+BIN_DIR = "bin"
+SEALER_EXE = os.path.join(BIN_DIR, "mighty_seal.exe")
+AUDITOR_EXE = os.path.join(BIN_DIR, "mighty_decode.exe")
+SIGNATURE = "MAC:00:1A:2B|GPS:10.5,76.2"
 
 # Ensure output directories exist
-for folder in [COMPRESSED_OUT, LOSSLESS_OUT, TEST_DIR, RAW_DIR]:
+for folder in [COMPRESSED_OUT, LOSSLESS_OUT, RAW_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-def get_bit_integrity(filename):
+def apply_whatsapp_wash(lossless_src, compressed_dst):
     """
-    Simulates L1 (Fragile) and L2 (Robust) bit counts.
-    In a live system, this would compare embedded bits against a reference.
+    Simulates WhatsApp/Social Media compression.
+    PNG -> Low Quality JPEG -> PNG
     """
-    # Simulate a failure for specific files to test the 'TAMPERED' logic
-    if "Screenshot" in filename and ("114404" in filename or "115442" in filename):
-        return (98, 113) 
-    return (208, 208)
-
-def extract_id_and_data(filename):
-    """
-    Simulates finding an AVST header inside the file bits.
-    """
-    # Logic: Only files with 'sealed' in the name are recognized as having an ID
-    if "_sealed" in filename:
-        return "AVST-9901", "Encrypted_Payload_v1"
-    return None, None
+    try:
+        img = Image.open(lossless_src)
+        temp_jpg = "temp_wash_buffer.jpg"
+        # Quality 30 strips L1 grain but tests L2 survival
+        img.convert("RGB").save(temp_jpg, "JPEG", quality=30) 
+        
+        washed_img = Image.open(temp_jpg)
+        washed_img.save(compressed_dst, "PNG")
+        
+        if os.path.exists(temp_jpg):
+            os.remove(temp_jpg)
+        return True
+    except Exception as e:
+        print(f"⚠️ Compression failed: {e}")
+        return False
 
 def run_option_1():
-    print(f"\n--- Option 1: Sealing Files from {RAW_DIR} ---")
+    print(f"\n--- Option 1: Sealing & Compression Stress Test ---")
     files = [f for f in os.listdir(RAW_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
     
     if not files:
         print(f"Error: No raw images found in {RAW_DIR}!")
         return
 
-    print(f"{'FILENAME':<35} | {'L1/L2 Status':<15} | {'ID GENERATED'}")
-    print("-" * 80)
+    print(f"{'FILENAME':<35} | {'STATUS'}")
+    print("-" * 55)
 
     for f in files:
-        # Generate a unique ID for the seal
-        generated_id = f"AVST-{abs(hash(f)) % 10000}"
+        input_path = os.path.join(RAW_DIR, f)
+        # Final output names
+        out_name = f"{os.path.splitext(f)[0]}_sealed.png"
+        lossless_path = os.path.join(LOSSLESS_OUT, out_name)
+        compressed_path = os.path.join(COMPRESSED_OUT, out_name)
         
-        # Define output filename
-        name_parts = os.path.splitext(f)
-        new_name = f"{name_parts[0]}_sealed{name_parts[1]}"
+        # 1. ACTUAL SEALING: Reach into /bin to run the C-engine
+        # This replaces the old shutil.copy simulation
+        result = subprocess.run([SEALER_EXE, input_path, lossless_path, SIGNATURE], capture_output=True)
         
-        # Simulate processing: Copying to target directories
-        shutil.copy(os.path.join(RAW_DIR, f), os.path.join(COMPRESSED_OUT, new_name))
-        shutil.copy(os.path.join(RAW_DIR, f), os.path.join(LOSSLESS_OUT, new_name))
-        
-        print(f"{f:<35} | 208/208 PASS   | {generated_id}")
-    
-    print(f"\nSuccess: Files sealed and moved to {COMPRESSED_OUT} and {LOSSLESS_OUT}")
+        if result.returncode == 0 and os.path.exists(lossless_path):
+            # 2. ACTUAL COMPRESSION: Run the wash logic
+            # This achieves the 335KB -> 215KB reduction
+            success = apply_whatsapp_wash(lossless_path, compressed_path)
+            
+            status = "✅ SEALED & WASHED" if success else "⚠️ WASH FAILED"
+            print(f"{f:<35} | {status}")
+        else:
+            print(f"{f:<35} | ❌ SEALING FAILED")
 
 def run_option_2():
     print(f"\n--- Option 2: Verifying Seals in {TEST_DIR} ---")
-    if not os.path.exists(TEST_DIR):
-        print(f"Error: {TEST_DIR} directory missing.")
-        return
-        
-    files = [f for f in os.listdir(TEST_DIR)]
+    files = [f for f in os.listdir(TEST_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    
     if not files:
         print(f"No files found in {TEST_DIR} to verify.")
         return
     
-    print(f"{'TEST FILE':<35} | {'L1':<4} | {'L2':<4} | {'VERDICT & IDENTITY'}")
+    print(f"{'TEST FILE':<35} | {'L1':<4} | {'L2':<4} | {'VERDICT'}")
     print("-" * 95)
 
     for f in files:
-        # 1. Identify if a Seal exists
-        obj_id, data = extract_id_and_data(f)
+        target_path = os.path.join(TEST_DIR, f)
         
-        # 2. Check bit integrity
-        l1_val, l2_val = get_bit_integrity(f)
+        # 3. ACTUAL AUDIT: Call mighty_decode.exe to scan pixels
+        # This replaces the hardcoded (208, 208) simulation
+        result = subprocess.run([AUDITOR_EXE, target_path, SIGNATURE], capture_output=True, text=True)
+        raw_output = result.stdout.strip()
+
+        # Parse real L1/L2 PASS/FAIL from your binary output
+        l1_pass = "PASS" in raw_output.split("|")[0] if "|" in raw_output else False
+        l2_pass = "PASS" in raw_output.split("|")[1] if "|" in raw_output else False
         
-        if obj_id:
-            # Logic for Sealed Items
-            l1_icon = "✅" if l1_val > 150 else "❌"
-            l2_icon = "✅" if l2_val > 150 else "❌"
-            
-            if l1_val > 150 and l2_val > 150:
-                verdict = f"AUTHENTIC [ID: {obj_id} @ {data}]"
-            else:
-                verdict = f"TAMPERED [ID: {obj_id} - Verification Failed]"
+        l1_icon = "✅" if l1_pass else "❌"
+        l2_icon = "✅" if l2_pass else "❌"
+        
+        # Verify identity presence
+        if l2_pass:
+            verdict = "AUTHENTIC" + (" (DISTRIBUTED)" if not l1_pass else "")
         else:
-            # Logic for Unsealed Items (No Ticks allowed)
-            l1_icon = "✘" 
-            l2_icon = "✘"
-            verdict = "UNSEALED [No ID / Original File]"
+            verdict = "UNSEALED / TAMPERED"
             
         print(f"{f:<35} | {l1_icon:<4} | {l2_icon:<4} | {verdict}")
 
 def main():
-    print("="*30)
-    print("AVST System Controller")
-    print("="*30)
+    print("="*35)
+    print("   AVST System Controller v4.0")
+    print("="*35)
     print("1. Mirror Stress Test (Process Surveillance_Data)")
-    print("2. Assured Seal Verification (Scan Surveillance_Data_Test)")
+    print("2. Assured Seal Verification (Audit Pixels)")
     
     choice = input("\nSelect Option (1 or 2): ")
-    
-    if choice == '1':
-        run_option_1()
-    elif choice == '2':
-        run_option_2()
-    else:
-        print("Invalid Selection.")
+    if choice == '1': run_option_1()
+    elif choice == '2': run_option_2()
 
 if __name__ == "__main__":
     main()
